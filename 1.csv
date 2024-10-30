@@ -1,0 +1,66 @@
+using System;
+
+public interface IReport
+{
+    string Generate();
+}
+
+public class SalesReport : IReport
+{
+    public string Generate()
+    {
+        return "SalesReport";
+    }
+}
+
+public class UseReport : IReport
+{
+    public string Generate()
+    {
+        return "UseReport";
+    }
+}
+
+public abstract class ReportDecorator : IReport
+{
+    private readonly IReport report;
+    protected ReportDecorator(IReport report)
+    {
+        this.report = report;
+    }
+
+    public virtual string Generate()
+    {
+        return report.Generate();
+    }
+}
+
+public class DateFilterDecorator : ReportDecorator
+{
+    private readonly DateTime startDate;
+    private readonly DateTime endDate;
+
+    public DateFilterDecorator(IReport report, DateTime startDate, DateTime endDate) : base(report)
+    {
+        this.startDate = startDate;
+        this.endDate = endDate;
+    }
+
+    public override string Generate()
+    {
+        var data = base.Generate();
+        return $"Filtered by Date from {startDate.ToShortDateString()} to {endDate.ToShortDateString()}: {data}";
+    }
+}
+
+public class Program
+{
+    static void Main(string[] args)
+    {
+        IReport report = new SalesReport();
+
+        report = new DateFilterDecorator(report, DateTime.Now.AddYears(-1), DateTime.Now);
+
+        Console.WriteLine(report.Generate());
+    }
+}
