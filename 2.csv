@@ -1,0 +1,135 @@
+using System;
+
+public interface IReport
+{
+    string Generate();
+}
+
+public class SalesReport : IReport
+{
+    public string Generate()
+    {
+        return "SalesReport";
+    }
+}
+
+public class UserReport : IReport
+{
+    public string Generate()
+    {
+        return "UserReport";
+    }
+}
+
+public abstract class ReportDecorator : IReport
+{
+    private IReport report;
+
+    protected ReportDecorator(IReport report)
+    {
+        this.report = report;
+    }
+
+    public virtual string Generate()
+    {
+        return report.Generate();
+    }
+}
+
+public class DateFilterDecorator : ReportDecorator
+{
+    private DateTime startDate;
+    private DateTime endDate;
+
+    public DateFilterDecorator(IReport report, DateTime startDate, DateTime endDate) : base(report)
+    {
+        this.startDate = startDate;
+        this.endDate = endDate;
+    }
+
+    public override string Generate()
+    {
+        var data = base.Generate();
+        return $"Filter from {startDate.ToShortDateString()} to {endDate.ToShortDateString()} - {data}";
+    }
+}
+
+public interface IInternalDeliveryService
+{
+    void DeliverOrder(string orderId);
+    string GetDeliveryStatus(string orderId);
+}
+
+public class InternalDeliveryService : IInternalDeliveryService
+{
+    public void DeliverOrder(string orderId)
+    {
+        Console.WriteLine("Delivering Order: " + orderId);
+    }
+
+    public string GetDeliveryStatus(string orderId)
+    {
+        return "Status for Order " + orderId;
+    }
+}
+
+public class GlovoLogisticsService
+{
+    public void ShipItem(int itemId)
+    {
+        Console.WriteLine($"Shipping item {itemId} with GlovoLogisticsService.");
+    }
+
+    public string TrackShipment(int itemId)
+    {
+        return $"Tracking info for shipment {itemId} in GlovoLogisticsService.";
+    }
+}
+
+public class LogisticAdapterGlovo : IInternalDeliveryService
+{
+    private GlovoLogisticsService glovoLogistics;
+
+    public LogisticAdapterGlovo(GlovoLogisticsService glovoLogistics)
+    {
+        this.glovoLogistics = glovoLogistics;
+    }
+
+    public void DeliverOrder(string orderId)
+    {
+        int itemId = int.Parse(orderId);
+        glovoLogistics.ShipItem(itemId);
+    }
+
+    public string GetDeliveryStatus(string orderId)
+    {
+        int itemId = int.Parse(orderId);
+        return glovoLogistics.TrackShipment(itemId);
+    }
+}
+
+public class Program
+{
+    static void Main(string[] args)
+    {
+        IReport report = new SalesReport();
+        report = new DateFilterDecorator(report, DateTime.Now.AddYears(-1), DateTime.Now);
+        Console.WriteLine(report.Generate());
+
+        IInternalDeliveryService deliveryService = null;
+        string typeDelivery = "Glovo";
+
+        if (typeDelivery == "Glovo")
+        {
+            deliveryService = new LogisticAdapterGlovo(new GlovoLogisticsService());
+        }
+        else
+        {
+            deliveryService = new InternalDeliveryService();
+        }
+
+        deliveryService.DeliverOrder("42656786");
+        string status = deliveryService.GetDeliveryStatus("42656786");
+        Console.WriteLine(status);
+    }
+}
